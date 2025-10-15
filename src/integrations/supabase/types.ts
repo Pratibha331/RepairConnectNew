@@ -110,6 +110,48 @@ export type Database = {
         }
         Relationships: []
       }
+      request_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          request_id: string
+          status: Database["public"]["Enums"]["request_status"]
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id: string
+          status: Database["public"]["Enums"]["request_status"]
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+          status?: Database["public"]["Enums"]["request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_status_history_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_categories: {
         Row: {
           created_at: string
@@ -130,6 +172,79 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      service_requests: {
+        Row: {
+          assigned_at: string | null
+          category_id: string
+          completed_at: string | null
+          created_at: string
+          description: string
+          id: string
+          location_address: string | null
+          location_lat: number
+          location_lng: number
+          photos: string[] | null
+          provider_id: string | null
+          resident_id: string
+          status: Database["public"]["Enums"]["request_status"]
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          category_id: string
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          location_address?: string | null
+          location_lat: number
+          location_lng: number
+          photos?: string[] | null
+          provider_id?: string | null
+          resident_id: string
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          category_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          location_address?: string | null
+          location_lat?: number
+          location_lng?: number
+          photos?: string[] | null
+          provider_id?: string | null
+          resident_id?: string
+          status?: Database["public"]["Enums"]["request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "provider_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -167,6 +282,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "resident" | "provider"
+      request_status:
+        | "pending"
+        | "assigned"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -295,6 +416,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "resident", "provider"],
+      request_status: [
+        "pending",
+        "assigned",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
     },
   },
 } as const
