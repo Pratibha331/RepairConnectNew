@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, LogOut, User as UserIcon } from "lucide-react";
+import { Wrench, LogOut, User as UserIcon, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ServiceRequestsList } from "@/components/ServiceRequestsList";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -109,60 +110,57 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Welcome, {profile?.name || user?.email}</CardTitle>
-              <CardDescription>
-                Account type: <span className="capitalize font-medium">{userRole}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {userRole === "resident" 
-                  ? "Post service requests and connect with local providers."
-                  : userRole === "provider"
-                  ? "View and manage your assigned service jobs."
-                  : "Manage users and service requests."}
-              </p>
-            </CardContent>
-          </Card>
-
-          {userRole === "resident" && (
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+        <div className="space-y-8">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
               <CardHeader>
-                <CardTitle>Post a Request</CardTitle>
-                <CardDescription>Need a repair or maintenance service?</CardDescription>
+                <CardTitle>Welcome, {profile?.name || user?.email}</CardTitle>
+                <CardDescription>
+                  Account type: <span className="capitalize font-medium">{userRole}</span>
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full">Create Service Request</Button>
+                <p className="text-sm text-muted-foreground">
+                  {userRole === "resident" 
+                    ? "Post service requests and connect with local providers."
+                    : userRole === "provider"
+                    ? "View and manage your assigned service jobs."
+                    : "Manage users and service requests."}
+                </p>
               </CardContent>
             </Card>
-          )}
 
-          {userRole === "provider" && (
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            {userRole === "resident" && (
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/create-request")}>
+                <CardHeader>
+                  <CardTitle>Post a Request</CardTitle>
+                  <CardDescription>Need a repair or maintenance service?</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Service Request
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
               <CardHeader>
-                <CardTitle>My Jobs</CardTitle>
-                <CardDescription>View your assigned service requests</CardDescription>
+                <CardTitle>Service Categories</CardTitle>
+                <CardDescription>Browse available services</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button className="w-full">View Assignments</Button>
+                <p className="text-sm text-muted-foreground">
+                  Plumbing, Electrical, Carpentry, HVAC, Painting, and more
+                </p>
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Service Categories</CardTitle>
-              <CardDescription>Browse available services</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Plumbing, Electrical, Carpentry, HVAC, Painting, and more
-              </p>
-            </CardContent>
-          </Card>
+          {user && userRole && (userRole === "resident" || userRole === "provider") && (
+            <ServiceRequestsList userRole={userRole} userId={user.id} />
+          )}
         </div>
       </main>
     </div>
