@@ -140,7 +140,7 @@ const CreateRequest = () => {
       }
 
       // Create service request
-      const { error } = await supabase
+      const { data: newRequest, error } = await supabase
         .from("service_requests")
         .insert({
           resident_id: user.id,
@@ -151,14 +151,39 @@ const CreateRequest = () => {
           location_lng: parseFloat(lng),
           photos: photoUrls,
           status: "pending",
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Service request created successfully",
-      });
+      // Trigger automatic provider assignment
+      try {
+        const { data: assignmentResult } = await supabase.functions.invoke(
+          "assign-provider",
+          {
+            body: { requestId: newRequest.id },
+          }
+        );
+
+        if (assignmentResult?.success) {
+          toast({
+            title: "Success",
+            description: `Request created and assigned to ${assignmentResult.provider.name}`,
+          });
+        } else {
+          toast({
+            title: "Request Created",
+            description: "No providers available nearby. Your request is pending.",
+          });
+        }
+      } catch (assignError) {
+        console.error("Assignment error:", assignError);
+        toast({
+          title: "Request Created",
+          description: "Your request is pending provider assignment.",
+        });
+      }
 
       navigate("/");
     } catch (error: any) {
