@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, X, MapPin } from "lucide-react";
+import { ArrowLeft, Upload, X } from "lucide-react";
+import { LocationPicker } from "@/components/LocationPicker";
 
 interface ServiceCategory {
   id: string;
@@ -112,18 +113,17 @@ const CreateRequest = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.category_id || !formData.description) {
+    if (!formData.category_id || !formData.description || !formData.location_lat || !formData.location_lng) {
       toast({
         variant: "destructive",
         title: "Missing fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including location",
       });
       return;
     }
 
-    // For now, use default coordinates if not provided
-    const lat = formData.location_lat || "0";
-    const lng = formData.location_lng || "0";
+    const lat = formData.location_lat;
+    const lng = formData.location_lng;
 
     setLoading(true);
 
@@ -231,23 +231,27 @@ const CreateRequest = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location Address</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="location"
-                    placeholder="Enter your address"
-                    value={formData.location_address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location_address: e.target.value })
-                    }
-                  />
-                  <Button type="button" variant="outline" size="icon">
-                    <MapPin className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Map integration coming soon. For now, please enter your address manually.
+                <Label htmlFor="location">Location *</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Click on the map to select your location
                 </p>
+                <LocationPicker
+                  onLocationSelect={(lat, lng, address) => {
+                    setFormData({
+                      ...formData,
+                      location_lat: lat.toString(),
+                      location_lng: lng.toString(),
+                      location_address: address || formData.location_address,
+                    });
+                  }}
+                  initialLat={formData.location_lat ? parseFloat(formData.location_lat) : undefined}
+                  initialLng={formData.location_lng ? parseFloat(formData.location_lng) : undefined}
+                />
+                {formData.location_address && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Selected: {formData.location_address}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
