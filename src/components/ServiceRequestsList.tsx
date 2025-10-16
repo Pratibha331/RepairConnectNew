@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { ProviderJobActions } from "./ProviderJobActions";
 
 interface ServiceRequest {
   id: string;
@@ -232,10 +233,20 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
                 {request.assigned_at && (
                   <p>Assigned: {format(new Date(request.assigned_at), "MMM d, yyyy 'at' h:mm a")}</p>
                 )}
-                {request.completed_at && (
+              {request.completed_at && (
                   <p>Completed: {format(new Date(request.completed_at), "MMM d, yyyy 'at' h:mm a")}</p>
                 )}
               </div>
+
+              {userRole === "provider" && (
+                <div className="pt-3 border-t">
+                  <ProviderJobActions
+                    requestId={request.id}
+                    currentStatus={request.status}
+                    onStatusUpdate={loadRequests}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

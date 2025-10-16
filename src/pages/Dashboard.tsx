@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Wrench, LogOut, User as UserIcon, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ServiceRequestsList } from "@/components/ServiceRequestsList";
+import { AvailabilityToggle } from "@/components/AvailabilityToggle";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -58,16 +59,10 @@ const Dashboard = () => {
   const loadUserRole = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-
-    if (error) {
-      console.error("Error loading role:", error);
-    } else {
-      setUserRole(data?.role);
+    // Get user type from auth metadata
+    const userType = user.user_metadata?.user_type;
+    if (userType) {
+      setUserRole(userType);
     }
   };
 
@@ -97,6 +92,12 @@ const Dashboard = () => {
             <h1 className="text-xl font-bold">RepairConnect</h1>
           </div>
           <div className="flex items-center gap-4">
+            {userRole === "admin" && (
+              <Button variant="ghost" onClick={() => navigate("/admin")}>
+                <UserIcon className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+            )}
             <Button variant="ghost" onClick={() => navigate("/profile")}>
               <UserIcon className="h-4 w-4 mr-2" />
               Profile
@@ -143,6 +144,10 @@ const Dashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
+            )}
+
+            {userRole === "provider" && user && (
+              <AvailabilityToggle userId={user.id} />
             )}
 
             <Card>

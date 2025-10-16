@@ -74,17 +74,11 @@ const Profile = () => {
   const loadUserRole = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-
-    if (error) {
-      console.error("Error loading role:", error);
-    } else {
-      setUserRole(data?.role);
-      if (data?.role === "provider") {
+    // Get user type from auth metadata
+    const userType = user.user_metadata?.user_type;
+    if (userType) {
+      setUserRole(userType);
+      if (userType === "provider") {
         loadProviderProfile();
       }
     }
