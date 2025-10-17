@@ -143,6 +143,25 @@ Deno.serve(async (req) => {
 
     if (providersWithDistance.length === 0) {
       console.log('No available providers found');
+      
+      // Notify admins about failed assignment
+      const { data: adminUsers } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+
+      if (adminUsers && adminUsers.length > 0) {
+        const adminNotifications = adminUsers.map(admin => ({
+          user_id: admin.user_id,
+          title: 'Assignment Failed',
+          message: `No available provider found for request ${requestId}`,
+          type: 'warning',
+          related_request_id: requestId,
+        }));
+
+        await supabase.from('notifications').insert(adminNotifications);
+      }
+      
       return new Response(
         JSON.stringify({
           success: false,
@@ -191,6 +210,33 @@ Deno.serve(async (req) => {
 
     if (historyError) {
       console.error('Error creating history entry:', historyError);
+    }
+
+    // Get provider user_id for notification
+    const { data: providerProfile } = await supabase
+      .from('provider_profiles')
+      .select('user_id')
+      .eq('id', assignedProvider.providerId)
+      .single();
+
+    // Create notification for resident
+    await supabase.from('notifications').insert({
+      user_id: request.resident_id,
+      title: 'Service Request Assigned',
+      message: `Your request has been assigned to ${assignedProvider.providerName}`,
+      type: 'success',
+      related_request_id: requestId,
+    });
+
+    // Create notification for provider
+    if (providerProfile?.user_id) {
+      await supabase.from('notifications').insert({
+        user_id: providerProfile.user_id,
+        title: 'New Job Assignment',
+        message: `You have been assigned a new service request`,
+        type: 'info',
+        related_request_id: requestId,
+      });
     }
 
     console.log('Assignment completed successfully');

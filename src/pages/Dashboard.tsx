@@ -8,6 +8,7 @@ import { Wrench, LogOut, User as UserIcon, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ServiceRequestsList } from "@/components/ServiceRequestsList";
 import { AvailabilityToggle } from "@/components/AvailabilityToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -92,6 +93,7 @@ const Dashboard = () => {
             <h1 className="text-xl font-bold">RepairConnect</h1>
           </div>
           <div className="flex items-center gap-4">
+            {user && <NotificationBell userId={user.id} />}
             {userRole === "admin" && (
               <Button variant="ghost" onClick={() => navigate("/admin")}>
                 <UserIcon className="h-4 w-4 mr-2" />
