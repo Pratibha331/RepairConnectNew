@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Wrench } from "lucide-react";
+import { LocationPicker } from "@/components/LocationPicker";
+import { ServiceAreaMap } from "@/components/ServiceAreaMap";
 
 interface ServiceCategory {
   id: string;
@@ -271,32 +273,40 @@ const Profile = () => {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Set your location on the map below"
+                  readOnly
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="lat">Latitude</Label>
-                  <Input
-                    id="lat"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., 40.7128"
-                    value={locationLat}
-                    onChange={(e) => setLocationLat(e.target.value)}
+              <div className="space-y-2">
+                <Label>Location</Label>
+                {userRole === "provider" && locationLat && locationLng ? (
+                  <ServiceAreaMap
+                    lat={parseFloat(locationLat)}
+                    lng={parseFloat(locationLng)}
+                    radiusKm={parseFloat(serviceRadiusKm)}
+                    editable
+                    onLocationChange={(lat, lng, addr) => {
+                      setLocationLat(lat.toString());
+                      setLocationLng(lng.toString());
+                      if (addr) setAddress(addr);
+                    }}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lng">Longitude</Label>
-                  <Input
-                    id="lng"
-                    type="number"
-                    step="any"
-                    placeholder="e.g., -74.0060"
-                    value={locationLng}
-                    onChange={(e) => setLocationLng(e.target.value)}
+                ) : (
+                  <LocationPicker
+                    initialLat={locationLat ? parseFloat(locationLat) : undefined}
+                    initialLng={locationLng ? parseFloat(locationLng) : undefined}
+                    onLocationSelect={(lat, lng, addr) => {
+                      setLocationLat(lat.toString());
+                      setLocationLng(lng.toString());
+                      if (addr) setAddress(addr);
+                    }}
                   />
-                </div>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Click on the map to set your location
+                  {userRole === "provider" && " and view your service area"}
+                </p>
               </div>
 
               {userRole === "provider" && (

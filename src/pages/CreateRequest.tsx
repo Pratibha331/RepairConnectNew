@@ -273,9 +273,12 @@ const CreateRequest = () => {
                   initialLng={formData.location_lng ? parseFloat(formData.location_lng) : undefined}
                 />
                 {formData.location_address && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Selected: {formData.location_address}
-                  </p>
+                  <Card className="mt-2">
+                    <CardContent className="pt-4">
+                      <p className="text-sm font-medium">Selected Location:</p>
+                      <p className="text-sm text-muted-foreground">{formData.location_address}</p>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
 
