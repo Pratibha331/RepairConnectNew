@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
           user_id,
           is_available,
           service_area_radius_km,
-          profiles!inner (
+          profiles!provider_profiles_user_id_fkey (
             id,
             name,
             location_lat,

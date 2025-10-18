@@ -99,8 +99,8 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
         .select(`
           *,
           service_categories!inner (name),
-          provider_profiles (
-            profiles (name, phone)
+          provider_profiles!service_requests_provider_id_fkey (
+            profiles!provider_profiles_user_id_fkey (name, phone)
           )
         `)
         .order("created_at", { ascending: false });
