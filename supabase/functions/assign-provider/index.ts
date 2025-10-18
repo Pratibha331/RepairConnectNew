@@ -198,19 +198,8 @@ Deno.serve(async (req) => {
       throw new Error('Failed to assign provider');
     }
 
-    // Log the assignment in status history
-    const { error: historyError } = await supabase
-      .from('request_status_history')
-      .insert({
-        request_id: requestId,
-        status: 'assigned',
-        changed_by: request.resident_id,
-        notes: `Automatically assigned to provider ${assignedProvider.providerName} (${assignedProvider.distance.toFixed(2)} km away)`,
-      });
-
-    if (historyError) {
-      console.error('Error creating history entry:', historyError);
-    }
+    // Note: Status history is now automatically logged by database trigger
+    console.log('Request status updated to assigned, history logged by trigger');
 
     // Get provider user_id for notification
     const { data: providerProfile } = await supabase
