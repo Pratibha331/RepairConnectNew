@@ -214,7 +214,9 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
             <CardContent className="space-y-3">
               <p className="text-sm">{request.description}</p>
               
-              {request.location_address && (
+              {request.location_address && 
+               (userRole === "resident" || 
+                (userRole === "provider" && request.status !== "completed" && request.status !== "cancelled")) && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   <span>{request.location_address}</span>
