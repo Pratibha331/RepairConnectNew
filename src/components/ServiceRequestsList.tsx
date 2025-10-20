@@ -238,7 +238,7 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
 
               {request.provider_profiles?.profiles && (
                 <div className="pt-2 border-t">
-                  <p className="text-sm font-medium">Assigned Provider:</p>
+                  <p className="text-sm font-medium">Assigned Service Provider:</p>
                   <p className="text-sm text-muted-foreground">
                     {request.provider_profiles.profiles.name}
                     {request.provider_profiles.profiles.phone && (
