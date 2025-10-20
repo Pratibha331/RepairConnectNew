@@ -70,57 +70,80 @@ Deno.serve(async (req) => {
     // Get all available providers for this category
     const { data: providerCategories, error: categoriesError } = await supabase
       .from('provider_categories')
-      .select(`
-        provider_profile_id,
-        provider_profiles!inner (
-          id,
-          user_id,
-          is_available,
-          service_area_radius_km,
-          profiles!provider_profiles_user_id_fkey (
-            id,
-            name,
-            location_lat,
-            location_lng
-          )
-        )
-      `)
+      .select('provider_profile_id')
       .eq('category_id', request.category_id);
 
     if (categoriesError) {
-      console.error('Error fetching providers:', categoriesError);
+      console.error('Error fetching provider categories:', categoriesError);
       throw new Error('Failed to fetch providers');
     }
 
-    console.log('Found provider categories:', providerCategories?.length);
+    if (!providerCategories || providerCategories.length === 0) {
+      console.log('No providers found for this category');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'No providers available for this category',
+          requestId
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
 
-    // Filter available providers with valid locations and calculate distances
-    const providersWithDistance = providerCategories
-      ?.filter((pc: any) => {
-        const provider = pc.provider_profiles;
-        const profile = provider?.profiles;
+    // Get provider profiles with location data
+    const { data: providerProfiles, error: profilesError } = await supabase
+      .from('provider_profiles')
+      .select(`
+        id,
+        user_id,
+        is_available,
+        service_area_radius_km
+      `)
+      .in('id', providerCategories.map(pc => pc.provider_profile_id))
+      .eq('is_available', true);
+
+    if (profilesError) {
+      console.error('Error fetching provider profiles:', profilesError);
+      throw new Error('Failed to fetch provider profiles');
+    }
+
+    // Get user profiles with location data
+    const userIds = providerProfiles?.map(pp => pp.user_id) || [];
+    const { data: profiles, error: userProfilesError } = await supabase
+      .from('profiles')
+      .select('id, name, location_lat, location_lng')
+      .in('id', userIds);
+
+    if (userProfilesError) {
+      console.error('Error fetching user profiles:', userProfilesError);
+      throw new Error('Failed to fetch user profiles');
+    }
+
+    console.log('Found provider profiles:', providerProfiles?.length);
+    console.log('Found user profiles:', profiles?.length);
+
+    // Combine provider data with location data and calculate distances
+    const providersWithDistance = providerProfiles
+      ?.map((provider: any) => {
+        const profile = profiles?.find(p => p.id === provider.user_id);
         
-        const isAvailable = provider?.is_available === true;
-        const hasLocation = profile?.location_lat != null && profile?.location_lng != null;
-        
-        console.log('Provider check:', {
-          id: provider?.id,
-          name: profile?.name,
-          isAvailable,
-          hasLocation
-        });
-        
-        return isAvailable && hasLocation;
-      })
-      .map((pc: any) => {
-        const provider = pc.provider_profiles;
-        const profile = provider.profiles;
+        if (!profile || profile.location_lat == null || profile.location_lng == null) {
+          console.log('Skipping provider - no location:', {
+            providerId: provider.id,
+            userId: provider.user_id,
+            hasProfile: !!profile
+          });
+          return null;
+        }
         
         const distance = calculateDistance(
           request.location_lat,
           request.location_lng,
-          profile.location_lat,
-          profile.location_lng
+          parseFloat(profile.location_lat),
+          parseFloat(profile.location_lng)
         );
 
         console.log('Provider distance:', {
@@ -133,10 +156,10 @@ Deno.serve(async (req) => {
           providerId: provider.id,
           providerName: profile.name,
           distance,
-          serviceRadius: provider.service_area_radius_km,
+          serviceRadius: parseFloat(provider.service_area_radius_km),
         };
       })
-      .filter((p: any) => p.distance <= p.serviceRadius)
+      .filter((p: any) => p !== null && p.distance <= p.serviceRadius)
       .sort((a: any, b: any) => a.distance - b.distance) || [];
 
     console.log('Providers within service radius:', providersWithDistance.length);
@@ -177,6 +200,10 @@ Deno.serve(async (req) => {
 
     // Assign to the nearest provider
     const assignedProvider = providersWithDistance[0];
+    if (!assignedProvider) {
+      throw new Error('No provider available after filtering');
+    }
+    
     console.log('Assigning to provider:', {
       id: assignedProvider.providerId,
       name: assignedProvider.providerName,

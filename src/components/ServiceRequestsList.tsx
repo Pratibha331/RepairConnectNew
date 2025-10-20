@@ -98,10 +98,7 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
         .from("service_requests")
         .select(`
           *,
-          service_categories!inner (name),
-          provider_profiles!service_requests_provider_id_fkey (
-            profiles!provider_profiles_user_id_fkey (name, phone)
-          )
+          service_categories!inner (name)
         `)
         .order("created_at", { ascending: false });
 
@@ -125,17 +122,38 @@ export const ServiceRequestsList = ({ userRole, userId }: ServiceRequestsListPro
 
       if (error) throw error;
       
-      // Map the data to handle the nested array structure
-      const mappedData = (data || []).map(item => ({
-        ...item,
-        provider_profiles: item.provider_profiles ? {
-          profiles: Array.isArray(item.provider_profiles.profiles) 
-            ? item.provider_profiles.profiles[0] || null
-            : item.provider_profiles.profiles
-        } : null
-      }));
+      // Fetch provider details separately for requests that have providers
+      const requestsWithProviders = await Promise.all(
+        (data || []).map(async (request) => {
+          if (!request.provider_id) {
+            return { ...request, provider_profiles: null };
+          }
+
+          // Get provider profile and user profile
+          const { data: providerProfile } = await supabase
+            .from("provider_profiles")
+            .select("user_id")
+            .eq("id", request.provider_id)
+            .single();
+
+          if (!providerProfile) {
+            return { ...request, provider_profiles: null };
+          }
+
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("name, phone")
+            .eq("id", providerProfile.user_id)
+            .single();
+
+          return {
+            ...request,
+            provider_profiles: profile ? { profiles: profile } : null
+          };
+        })
+      );
       
-      setRequests(mappedData as ServiceRequest[]);
+      setRequests(requestsWithProviders as ServiceRequest[]);
     } catch (error) {
       console.error("Error loading requests:", error);
     } finally {
