@@ -48,6 +48,18 @@ export const AvailabilityToggle = ({ userId }: AvailabilityToggleProps) => {
       if (error) throw error;
 
       setIsAvailable(checked);
+      
+      // If turning availability ON, check for pending requests
+      if (checked) {
+        const { error: assignError } = await supabase.functions.invoke('assign-pending-requests', {
+          body: { userId }
+        });
+
+        if (assignError) {
+          console.error('Error checking pending requests:', assignError);
+        }
+      }
+
       toast({
         title: checked ? "Now Available" : "Now Unavailable",
         description: checked 

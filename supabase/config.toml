@@ -1,1 +1,7 @@
 project_id = "cutgfxravsygbwidmoay"
+
+[functions.assign-provider]
+verify_jwt = false
+
+[functions.assign-pending-requests]
+verify_jwt = false
