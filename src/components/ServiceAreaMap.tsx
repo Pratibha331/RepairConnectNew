@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { GoogleMap, useJsApiLoader, Marker, Circle } from "@react-google-maps/api";
+import { useCallback, useEffect, useState, useRef } from "react";
+import { GoogleMap, useJsApiLoader, Marker, Circle, Autocomplete } from "@react-google-maps/api";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, AlertCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ServiceAreaMapProps {
   lat: number;
@@ -27,15 +31,117 @@ export const ServiceAreaMap = ({
   const [center, setCenter] = useState({ lat, lng });
   const [markerPosition, setMarkerPosition] = useState({ lat, lng });
 
-  const { isLoaded } = useJsApiLoader({
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
   });
 
+  const onAutocompleteLoad = (autocomplete: google.maps.places.Autocomplete) => {
+    setAutocomplete(autocomplete);
+  };
+
+  const handlePlaceSelect = useCallback(() => {
+    if (autocomplete && editable) {
+      setSearchLoading(true);
+      const place = autocomplete.getPlace();
+      
+      if (place.geometry?.location) {
+        const newPosition = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        setMarkerPosition(newPosition);
+        setCenter(newPosition);
+        if (onLocationChange) {
+          onLocationChange(
+            newPosition.lat,
+            newPosition.lng,
+            place.formatted_address || ""
+          );
+        }
+      }
+      setSearchLoading(false);
+    }
+  }, [autocomplete, editable, onLocationChange]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInputRef.current?.value && editable) {
+      setSearchLoading(true);
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { address: searchInputRef.current.value },
+        (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            const location = results[0].geometry.location;
+            const newPosition = {
+              lat: location.lat(),
+              lng: location.lng()
+            };
+            setMarkerPosition(newPosition);
+            setCenter(newPosition);
+            if (onLocationChange) {
+              onLocationChange(
+                newPosition.lat,
+                newPosition.lng,
+                results[0].formatted_address
+              );
+            }
+          } else {
+            setError("Location not found. Please try a different search.");
+          }
+          setSearchLoading(false);
+        }
+      );
+    }
+  };
+
   useEffect(() => {
-    setCenter({ lat, lng });
-    setMarkerPosition({ lat, lng });
-  }, [lat, lng]);
+    // If no initial position and editable, request user's location
+    if ((!lat || !lng) && editable) {
+      if ("geolocation" in navigator) {
+        navigator.permissions.query({ name: "geolocation" }).then((result) => {
+          if (result.state === "granted" || result.state === "prompt") {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const userLocation = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                };
+                setCenter(userLocation);
+                setMarkerPosition(userLocation);
+                if (onLocationChange) {
+                  // Get address for the location
+                  const geocoder = new google.maps.Geocoder();
+                  geocoder.geocode({ location: userLocation }, (results, status) => {
+                    if (status === "OK" && results?.[0]) {
+                      onLocationChange(userLocation.lat, userLocation.lng, results[0].formatted_address);
+                    } else {
+                      onLocationChange(userLocation.lat, userLocation.lng);
+                    }
+                  });
+                }
+              },
+              (error) => {
+                console.log("Geolocation error:", error);
+                setCenter({ lat, lng });
+                setMarkerPosition({ lat, lng });
+              }
+            );
+          }
+        });
+      }
+    } else {
+      setCenter({ lat, lng });
+      setMarkerPosition({ lat, lng });
+    }
+  }, [lat, lng, editable, onLocationChange]);
 
   const onMapClick = useCallback(
     (e: google.maps.MapMouseEvent) => {

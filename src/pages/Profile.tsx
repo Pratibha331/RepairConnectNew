@@ -28,7 +28,6 @@ const Profile = () => {
   // Profile fields
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [locationLat, setLocationLat] = useState("");
   const [locationLng, setLocationLng] = useState("");
   
@@ -67,7 +66,6 @@ const Profile = () => {
     } else {
       setName(data.name || "");
       setPhone(data.phone || "");
-      setAddress(data.address || "");
       setLocationLat(data.location_lat?.toString() || "");
       setLocationLng(data.location_lng?.toString() || "");
     }
@@ -131,7 +129,6 @@ const Profile = () => {
         .update({
           name,
           phone,
-          address,
           location_lat: locationLat ? parseFloat(locationLat) : null,
           location_lng: locationLng ? parseFloat(locationLng) : null,
         })
@@ -266,44 +263,29 @@ const Profile = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Set your location on the map below"
-                  readOnly
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Location</Label>
+              <div>
                 {userRole === "provider" && locationLat && locationLng ? (
                   <ServiceAreaMap
                     lat={parseFloat(locationLat)}
                     lng={parseFloat(locationLng)}
                     radiusKm={parseFloat(serviceRadiusKm)}
                     editable
-                    onLocationChange={(lat, lng, addr) => {
+                    onLocationChange={(lat, lng) => {
                       setLocationLat(lat.toString());
                       setLocationLng(lng.toString());
-                      if (addr) setAddress(addr);
                     }}
                   />
                 ) : (
                   <LocationPicker
-                    initialLat={locationLat ? parseFloat(locationLat) : undefined}
-                    initialLng={locationLng ? parseFloat(locationLng) : undefined}
-                    onLocationSelect={(lat, lng, addr) => {
+                    initialLat={locationLat && locationLat !== "" ? parseFloat(locationLat) : undefined}
+                    initialLng={locationLng && locationLng !== "" ? parseFloat(locationLng) : undefined}
+                    onLocationSelect={(lat, lng) => {
                       setLocationLat(lat.toString());
                       setLocationLng(lng.toString());
-                      if (addr) setAddress(addr);
                     }}
                   />
                 )}
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground mt-2">
                   Click on the map to set your location
                   {userRole === "provider" && " and view your service area"}
                 </p>

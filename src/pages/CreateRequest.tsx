@@ -255,31 +255,20 @@ const CreateRequest = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Click on the map to select your location
-                </p>
+              <div>
                 <LocationPicker
                   onLocationSelect={(lat, lng, address) => {
                     setFormData({
                       ...formData,
                       location_lat: lat.toString(),
                       location_lng: lng.toString(),
-                      location_address: address || formData.location_address,
+                      location_address: address || "",
                     });
                   }}
-                  initialLat={formData.location_lat ? parseFloat(formData.location_lat) : undefined}
-                  initialLng={formData.location_lng ? parseFloat(formData.location_lng) : undefined}
+                  initialLat={formData.location_lat && formData.location_lat !== "" ? parseFloat(formData.location_lat) : undefined}
+                  initialLng={formData.location_lng && formData.location_lng !== "" ? parseFloat(formData.location_lng) : undefined}
                 />
-                {formData.location_address && (
-                  <Card className="mt-2">
-                    <CardContent className="pt-4">
-                      <p className="text-sm font-medium">Selected Location:</p>
-                      <p className="text-sm text-muted-foreground">{formData.location_address}</p>
-                    </CardContent>
-                  </Card>
-                )}
+
               </div>
 
               <div className="space-y-2">

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Wrench } from "lucide-react";
-
+import { TermsDialog } from "@/components/ui/terms-dialog";
 type UserType = "resident" | "provider";
 
 const Auth = () => {
@@ -21,6 +21,8 @@ const Auth = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [userType, setUserType] = useState<UserType>("resident");
+  const [showTerms, setShowTerms] = useState(false);
+  const [pendingSignup, setPendingSignup] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,12 +55,14 @@ const Auth = () => {
         });
         navigate("/");
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -66,11 +70,21 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (userType === "provider" && !pendingSignup) {
+      setShowTerms(true);
+      return;
+    }
+    
+    await processSignup();
+  };
+
+  const processSignup = async () => {
     setLoading(true);
 
     try {
       const redirectUrl = `${window.location.origin}/`;
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -85,11 +99,19 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Signup failed",
-          description: error.message,
-        });
+        if (error.message.toLowerCase().includes('email')) {
+          toast({
+            variant: "destructive",
+            title: "Email already registered",
+            description: "This email is already in use. Please try logging in or use a different email address.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Signup failed",
+            description: error.message,
+          });
+        }
       } else {
         // Insert user role
         if (data.user) {
@@ -101,26 +123,79 @@ const Auth = () => {
           if (roleError) {
             console.error("Role assignment error:", roleError);
           }
+
+          // For service providers, also create provider profile
+          if (userType === "provider") {
+            const { error: providerError } = await supabase.from("provider_profiles").insert({
+              user_id: data.user.id,
+              service_area_radius_km: 10,
+              is_available: true,
+            });
+
+            if (providerError) {
+              console.error("Provider profile creation error:", providerError);
+            }
+          }
         }
 
-        toast({
-          title: "Success",
-          description: "Account created! Please check your email to verify your account.",
+        // Check if confirmation email was sent
+        if (data.user?.identities?.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Email already registered",
+            description: "This email is already registered. Please try logging in or use a different email.",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Account created! Please check your email (including spam folder) to verify your account.",
+          });
+        }
+
+        // Log the signup attempt for debugging
+        console.log("Signup response:", {
+          user: data.user,
+          session: data.session,
+          userType,
+          confirmationSent: data.user?.identities?.length > 0
         });
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleTermsConfirm = () => {
+    setShowTerms(false);
+    setPendingSignup(true);
+    processSignup();
+  };
+
+  const handleTermsDecline = () => {
+    setShowTerms(false);
+    setPendingSignup(false);
+    toast({
+      variant: "destructive",
+      title: "Terms Declined",
+      description: "You must accept the terms and conditions to register as a service provider.",
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+      <TermsDialog 
+        isOpen={showTerms} 
+        onConfirm={handleTermsConfirm} 
+        onCancel={handleTermsDecline}
+      />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
